@@ -33,28 +33,63 @@ namespace msgraphapp.Controllers
         [HttpGet]
         public async Task<ActionResult<string>> Get()
         {
+    
             var graphServiceClient = GetGraphClient();
-
+            var msg = $"";
+            // user changes 
             var sub = new Microsoft.Graph.Subscription();
             sub.ChangeType = "updated";
             sub.NotificationUrl = config.Ngrok + "/api/notifications";
             sub.Resource = "/users";
             sub.ExpirationDateTime = DateTime.UtcNow.AddMinutes(5);
-            sub.ClientState = "SecretClientState";
+            sub.ClientState = "user_changes";
 
             var newSubscription = await graphServiceClient
               .Subscriptions
               .Request()
               .AddAsync(sub);
+            msg += $"Subscribed. Id: {newSubscription.Id}, {newSubscription.ChangeType}, {newSubscription.Resource}, Expiration: {newSubscription.ExpirationDateTime}\r\n";
+            Subscriptions[newSubscription.Id] = newSubscription;
+
+            // // group changes 
+            // sub = new Microsoft.Graph.Subscription();
+            // sub.ChangeType = "updated";
+            // sub.NotificationUrl = config.Ngrok + "/api/notifications";
+            // sub.Resource = "/groups";
+            // sub.ExpirationDateTime = DateTime.UtcNow.AddMinutes(5);
+            // sub.ClientState = "group_changes";
+
+            // newSubscription = await graphServiceClient
+            //   .Subscriptions
+            //   .Request()
+            //   .AddAsync(sub);
+            // msg += $"Subscribed. Id: {newSubscription.Id}, {newSubscription.ChangeType}, {newSubscription.Resource}, Expiration: {newSubscription.ExpirationDateTime}\r\n";
+            // Subscriptions[newSubscription.Id] = newSubscription;
+
+            // // New Call Details 
+            sub = new Microsoft.Graph.Subscription();
+            sub.ChangeType = "created";
+            sub.NotificationUrl = config.Ngrok + "/api/notifications";
+            sub.Resource = "/communications/callRecords";
+            sub.ExpirationDateTime = DateTime.UtcNow.AddMinutes(5);
+            sub.ClientState = "new_callrecord";
+
+            newSubscription = await graphServiceClient
+              .Subscriptions
+              .Request()
+              .AddAsync(sub);
+            msg += $"Subscribed. Id: {newSubscription.Id}, {newSubscription.ChangeType}, {newSubscription.Resource}, Expiration: {newSubscription.ExpirationDateTime}\r\n";
 
             Subscriptions[newSubscription.Id] = newSubscription;
+            //--------------------------
+
 
             if (subscriptionTimer == null)
             {
                 subscriptionTimer = new Timer(CheckSubscriptions, null, 5000, 15000);
             }
-
-            return $"Subscribed. Id: {newSubscription.Id}, Expiration: {newSubscription.ExpirationDateTime}";
+            // todo: return all subscriptions
+            return msg;
         }
 
         public async Task<ActionResult<string>> Post([FromQuery]string validationToken = null)
@@ -62,7 +97,9 @@ namespace msgraphapp.Controllers
             // handle validation
             if (!string.IsNullOrEmpty(validationToken))
             {
+                Console.ForegroundColor = ConsoleColor.Yellow;
                 Console.WriteLine($"Received Token: '{validationToken}'");
+                Console.ForegroundColor = ConsoleColor.White;
                 return Ok(validationToken);
             }
 
@@ -77,10 +114,15 @@ namespace msgraphapp.Controllers
 
                 foreach (var notification in notifications.Items)
                 {
-                    Console.WriteLine($"Received notification: '{notification.Resource}', {notification.ResourceData?.Id}");
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine($"Received {notification.ResourceData?.ODataType} update: '{notification.Resource}', {notification.ResourceData?.Id} ");
+                    Console.ForegroundColor = ConsoleColor.White;
+                }
+                if (notifications.Items[0].ClientState == ""){
+
                 }
             }
-
+            
             // use deltaquery to query for all updates
             await CheckForUpdates();            
 
@@ -89,7 +131,7 @@ namespace msgraphapp.Controllers
 
         private GraphServiceClient GetGraphClient()
         {
-            var graphClient = new GraphServiceClient(new DelegateAuthenticationProvider((requestMessage) =>
+            var graphClient = new GraphServiceClient("https://graph.microsoft.com/beta", new DelegateAuthenticationProvider((requestMessage) =>
             {
 
                 // get an access token for Graph
@@ -123,9 +165,10 @@ namespace msgraphapp.Controllers
         private void CheckSubscriptions(Object stateInfo)
         {
             AutoResetEvent autoEvent = (AutoResetEvent)stateInfo;
-
+            Console.ForegroundColor = ConsoleColor.Gray;
             Console.WriteLine($"Checking subscriptions {DateTime.Now.ToString("h:mm:ss.fff")}");
             Console.WriteLine($"Current subscription count {Subscriptions.Count()}");
+            Console.ForegroundColor = ConsoleColor.White;
 
             foreach (var subscription in Subscriptions)
             {
@@ -139,7 +182,7 @@ namespace msgraphapp.Controllers
 
         private async void RenewSubscription(Subscription subscription)
         {
-            Console.WriteLine($"Current subscription: {subscription.Id}, Expiration: {subscription.ExpirationDateTime}");
+            Console.WriteLine($"Current subscription: {subscription.Id} for {subscription.Resource},  Expiration: {subscription.ExpirationDateTime}");
 
             var graphServiceClient = GetGraphClient();
 
@@ -154,7 +197,9 @@ namespace msgraphapp.Controllers
               .UpdateAsync(newSubscription);
 
             subscription.ExpirationDateTime = newSubscription.ExpirationDateTime;
+            Console.ForegroundColor = ConsoleColor.Blue;
             Console.WriteLine($"Renewed subscription: {subscription.Id}, New Expiration: {subscription.ExpirationDateTime}");
+            Console.ForegroundColor = ConsoleColor.White;
         }
 
         private static object DeltaLink = null;
