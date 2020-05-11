@@ -36,20 +36,23 @@ namespace msgraphapp.Controllers
     
             var graphServiceClient = GetGraphClient();
             var msg = $"";
-            // user changes 
-            var sub = new Microsoft.Graph.Subscription();
-            sub.ChangeType = "updated";
-            sub.NotificationUrl = config.Ngrok + "/api/notifications";
-            sub.Resource = "/users";
-            sub.ExpirationDateTime = DateTime.UtcNow.AddMinutes(5);
-            sub.ClientState = "user_changes";
+            Microsoft.Graph.Subscription sub = null;
+            Microsoft.Graph.Subscription newSubscription = null;
 
-            var newSubscription = await graphServiceClient
-              .Subscriptions
-              .Request()
-              .AddAsync(sub);
-            msg += $"Subscribed. Id: {newSubscription.Id}, {newSubscription.ChangeType}, {newSubscription.Resource}, Expiration: {newSubscription.ExpirationDateTime}\r\n";
-            Subscriptions[newSubscription.Id] = newSubscription;
+            // // user changes 
+            // sub = new Microsoft.Graph.Subscription();
+            // sub.ChangeType = "updated";
+            // sub.NotificationUrl = config.Ngrok + "/api/notifications";
+            // sub.Resource = "/users";
+            // sub.ExpirationDateTime = DateTime.UtcNow.AddMinutes(5);
+            // sub.ClientState = "user_changes";
+
+            // newSubscription = await graphServiceClient
+            //   .Subscriptions
+            //   .Request()
+            //   .AddAsync(sub);
+            // msg += $"Subscribed. Id: {newSubscription.Id}, {newSubscription.ChangeType}, {newSubscription.Resource}, Expiration: {newSubscription.ExpirationDateTime}\r\n";
+            // Subscriptions[newSubscription.Id] = newSubscription;
 
             // // group changes 
             // sub = new Microsoft.Graph.Subscription();
@@ -118,13 +121,11 @@ namespace msgraphapp.Controllers
                     Console.WriteLine($"Received {notification.ResourceData?.ODataType} update: '{notification.Resource}', {notification.ResourceData?.Id} ");
                     Console.ForegroundColor = ConsoleColor.White;
                 }
-                if (notifications.Items[0].ClientState == ""){
 
-                }
             }
             
             // use deltaquery to query for all updates
-            await CheckForUpdates();            
+            // await CheckForUpdates();            
 
             return Ok();
         }
@@ -209,65 +210,65 @@ namespace msgraphapp.Controllers
             }
         }
 
-        private static object DeltaLink = null;
+        // private static object DeltaLink = null;
 
-        private static IUserDeltaCollectionPage lastPage = null;
+        // private static IUserDeltaCollectionPage lastPage = null;
 
-        private async Task CheckForUpdates()
-        {
-            var graphClient = GetGraphClient();
+        // private async Task CheckForUpdates()
+        // {
+        //     var graphClient = GetGraphClient();
 
-            // get a page of users
-            var users = await GetUsers(graphClient, DeltaLink);
+        //     // get a page of users
+        //     var users = await GetUsers(graphClient, DeltaLink);
 
-            OutputUsers(users);
+        //     OutputUsers(users);
 
-            // go through all of the pages so that we can get the delta link on the last page.
-            while (users.NextPageRequest != null)
-            {
-                users = users.NextPageRequest.GetAsync().Result;
-                OutputUsers(users);
-            }
+        //     // go through all of the pages so that we can get the delta link on the last page.
+        //     while (users.NextPageRequest != null)
+        //     {
+        //         users = users.NextPageRequest.GetAsync().Result;
+        //         OutputUsers(users);
+        //     }
 
-            object deltaLink;
+        //     object deltaLink;
 
-            if (users.AdditionalData.TryGetValue("@odata.deltaLink", out deltaLink))
-            {
-                DeltaLink = deltaLink;
-            }
-        }
+        //     if (users.AdditionalData.TryGetValue("@odata.deltaLink", out deltaLink))
+        //     {
+        //         DeltaLink = deltaLink;
+        //     }
+        // }
 
-        private void OutputUsers(IUserDeltaCollectionPage users)
-        {
-            foreach (var user in users)
-            {
-                var message = $"User: {user.Id}, {user.GivenName} {user.Surname}";
-                Console.WriteLine(message);
-            }
-        }
+        // private void OutputUsers(IUserDeltaCollectionPage users)
+        // {
+        //     foreach (var user in users)
+        //     {
+        //         var message = $"User: {user.Id}, {user.GivenName} {user.Surname}";
+        //         Console.WriteLine(message);
+        //     }
+        // }
 
-        private async Task<IUserDeltaCollectionPage> GetUsers(GraphServiceClient graphClient, object deltaLink)
-        {
-            IUserDeltaCollectionPage page;
+        // private async Task<IUserDeltaCollectionPage> GetUsers(GraphServiceClient graphClient, object deltaLink)
+        // {
+        //     IUserDeltaCollectionPage page;
 
-            if (lastPage == null)
-            {
-                page = await graphClient
-                    .Users
-                    .Delta()
-                    .Request()
-                    .GetAsync();
+        //     if (lastPage == null)
+        //     {
+        //         page = await graphClient
+        //             .Users
+        //             .Delta()
+        //             .Request()
+        //             .GetAsync();
 
-            }
-            else
-            {
-                lastPage.InitializeNextPageRequest(graphClient, deltaLink.ToString());
-                page = await lastPage.NextPageRequest.GetAsync();
-            }
+        //     }
+        //     else
+        //     {
+        //         lastPage.InitializeNextPageRequest(graphClient, deltaLink.ToString());
+        //         page = await lastPage.NextPageRequest.GetAsync();
+        //     }
 
-            lastPage = page;
-            return page;
-        }
+        //     lastPage = page;
+        //     return page;
+        // }
 
     }
 }
