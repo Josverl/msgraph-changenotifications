@@ -190,16 +190,23 @@ namespace msgraphapp.Controllers
             {
                 ExpirationDateTime = DateTime.UtcNow.AddMinutes(5)
             };
+            try {
+                await graphServiceClient
+                .Subscriptions[subscription.Id]
+                .Request()
+                .UpdateAsync(newSubscription);
 
-            await graphServiceClient
-              .Subscriptions[subscription.Id]
-              .Request()
-              .UpdateAsync(newSubscription);
-
-            subscription.ExpirationDateTime = newSubscription.ExpirationDateTime;
-            Console.ForegroundColor = ConsoleColor.Blue;
-            Console.WriteLine($"Renewed subscription: {subscription.Id}, New Expiration: {subscription.ExpirationDateTime}");
-            Console.ForegroundColor = ConsoleColor.White;
+                subscription.ExpirationDateTime = newSubscription.ExpirationDateTime;
+                Console.ForegroundColor = ConsoleColor.Blue;
+                Console.WriteLine($"Renewed subscription: {subscription.Id},{subscription.Resource} New Expiration: {subscription.ExpirationDateTime}");
+                Console.ForegroundColor = ConsoleColor.White;
+            } catch {
+                // failed to renew the subscption
+                // todo: create new subscription 
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"Failed to renew subscription: {subscription.Id}, {subscription.Resource}");
+                Console.ForegroundColor = ConsoleColor.White;
+            }
         }
 
         private static object DeltaLink = null;
