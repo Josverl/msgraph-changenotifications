@@ -12,15 +12,15 @@ namespace msgraphapp.Models
     public string Id { get; set; }
 
     // The OData etag property.
-    [JsonProperty(PropertyName = "@odata.etag")]
+    [JsonProperty(PropertyName = "oDataEtag")]
     public string ODataEtag { get; set; }
 
     // The OData ID of the resource. This is the same value as the resource property.
-    [JsonProperty(PropertyName = "@odata.id")]
+    [JsonProperty(PropertyName = "oDataId")]
     public string ODataId { get; set; }
 
     // The OData type of the resource: "#Microsoft.Graph.Message", "#Microsoft.Graph.Event", or "#Microsoft.Graph.Contact".
-    [JsonProperty(PropertyName = "@odata.type")]
+    [JsonProperty(PropertyName = "odataType")]
     public string ODataType { get; set; }
   }
 }

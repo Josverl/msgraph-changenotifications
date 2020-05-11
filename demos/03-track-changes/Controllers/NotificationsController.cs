@@ -74,7 +74,7 @@ namespace msgraphapp.Controllers
             sub.ChangeType = "created";
             sub.NotificationUrl = config.Ngrok + "/api/notifications";
             sub.Resource = "/communications/callRecords";
-            sub.ExpirationDateTime = DateTime.UtcNow.AddMinutes(5);
+            sub.ExpirationDateTime = DateTime.UtcNow.AddMinutes(1*60);      // 1 hour  max = 4230 minutes (under 3 days)
             sub.ClientState = "new_callrecord";
 
             newSubscription = await graphServiceClient
@@ -91,7 +91,7 @@ namespace msgraphapp.Controllers
             {
                 subscriptionTimer = new Timer(CheckSubscriptions, null, 5000, 15000);
             }
-            // todo: return all subscriptions
+            // return all subscriptions
             return msg;
         }
 
@@ -101,7 +101,7 @@ namespace msgraphapp.Controllers
             if (!string.IsNullOrEmpty(validationToken))
             {
                 Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.WriteLine($"Received Token: '{validationToken}'");
+                Console.WriteLine($"Received ValidationToken: '{validationToken}'");
                 Console.ForegroundColor = ConsoleColor.White;
                 return Ok(validationToken);
             }
@@ -110,18 +110,26 @@ namespace msgraphapp.Controllers
             using (StreamReader reader = new StreamReader(Request.Body))
             {
                 string content = await reader.ReadToEndAsync();
-
                 Console.WriteLine(content);
 
                 var notifications = JsonConvert.DeserializeObject<Notifications>(content);
-
-                foreach (var notification in notifications.Items)
-                {
-                    Console.ForegroundColor = ConsoleColor.Green;
-                    Console.WriteLine($"Received {notification.ResourceData?.ODataType} update: '{notification.Resource}', {notification.ResourceData?.Id} ");
-                    Console.ForegroundColor = ConsoleColor.White;
+                var filename = ".\\recievedchanges.csv";
+                var addHeaders = ! System.IO.File.Exists(filename);
+                // write/append changes to the simplets of storarage; a csv file 
+                using (var writer = new StreamWriter(filename,true))
+                {   
+                    // header only if new file
+                    if (addHeaders){
+                        writer.WriteLine($"ChangeType,ClientState,TenantId,Resource,Id,ODataType,ODataId,ODataEtag");
+                    }
+                    foreach (var notification in notifications.Items)
+                    {
+                        Console.WriteLine($"Received {notification.ResourceData?.ODataType} {notification.ChangeType}: {notification.ResourceData?.ODataId} ");
+                        writer.WriteLine($"{notification.ChangeType},{notification.ClientState},{notification.tenantId},{notification.Resource},"+ 
+                                         $"{notification.ResourceData?.Id},{notification.ResourceData?.ODataType},{notification.ResourceData?.ODataId},"+
+                                         $"{notification.ResourceData?.ODataEtag}");
+                    }
                 }
-
             }
             
             // use deltaquery to query for all updates
@@ -166,15 +174,16 @@ namespace msgraphapp.Controllers
         private void CheckSubscriptions(Object stateInfo)
         {
             AutoResetEvent autoEvent = (AutoResetEvent)stateInfo;
-            Console.ForegroundColor = ConsoleColor.Gray;
-            Console.WriteLine($"Checking subscriptions {DateTime.Now.ToString("h:mm:ss.fff")}");
-            Console.WriteLine($"Current subscription count {Subscriptions.Count()}");
-            Console.ForegroundColor = ConsoleColor.White;
+            // Console.ForegroundColor = ConsoleColor.Gray;
+            // Console.WriteLine($"Checking subscriptions {DateTime.Now.ToString("h:mm:ss.fff")}");
+            // Console.WriteLine($"Current subscription count {Subscriptions.Count()}");
+            // Console.ForegroundColor = ConsoleColor.White;
+            Console.Write("~");
 
             foreach (var subscription in Subscriptions)
             {
-                // if the subscription expires in the next 2 min, renew it
-                if (subscription.Value.ExpirationDateTime < DateTime.UtcNow.AddMinutes(2))
+                // if the subscription expires in the next 5 min, renew it
+                if (subscription.Value.ExpirationDateTime < DateTime.UtcNow.AddMinutes(5))
                 {
                     RenewSubscription(subscription.Value);
                 }
@@ -209,66 +218,6 @@ namespace msgraphapp.Controllers
                 Console.ForegroundColor = ConsoleColor.White;
             }
         }
-
-        // private static object DeltaLink = null;
-
-        // private static IUserDeltaCollectionPage lastPage = null;
-
-        // private async Task CheckForUpdates()
-        // {
-        //     var graphClient = GetGraphClient();
-
-        //     // get a page of users
-        //     var users = await GetUsers(graphClient, DeltaLink);
-
-        //     OutputUsers(users);
-
-        //     // go through all of the pages so that we can get the delta link on the last page.
-        //     while (users.NextPageRequest != null)
-        //     {
-        //         users = users.NextPageRequest.GetAsync().Result;
-        //         OutputUsers(users);
-        //     }
-
-        //     object deltaLink;
-
-        //     if (users.AdditionalData.TryGetValue("@odata.deltaLink", out deltaLink))
-        //     {
-        //         DeltaLink = deltaLink;
-        //     }
-        // }
-
-        // private void OutputUsers(IUserDeltaCollectionPage users)
-        // {
-        //     foreach (var user in users)
-        //     {
-        //         var message = $"User: {user.Id}, {user.GivenName} {user.Surname}";
-        //         Console.WriteLine(message);
-        //     }
-        // }
-
-        // private async Task<IUserDeltaCollectionPage> GetUsers(GraphServiceClient graphClient, object deltaLink)
-        // {
-        //     IUserDeltaCollectionPage page;
-
-        //     if (lastPage == null)
-        //     {
-        //         page = await graphClient
-        //             .Users
-        //             .Delta()
-        //             .Request()
-        //             .GetAsync();
-
-        //     }
-        //     else
-        //     {
-        //         lastPage.InitializeNextPageRequest(graphClient, deltaLink.ToString());
-        //         page = await lastPage.NextPageRequest.GetAsync();
-        //     }
-
-        //     lastPage = page;
-        //     return page;
-        // }
 
     }
 }

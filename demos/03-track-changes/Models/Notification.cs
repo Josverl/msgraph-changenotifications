@@ -38,5 +38,9 @@ namespace msgraphapp.Models
     // Properties of the changed resource.
     [JsonProperty(PropertyName = "resourceData")]
     public ResourceData ResourceData { get; set; }
+
+    // The tenantId.
+    [JsonProperty(PropertyName = "tenantId")]
+    public string tenantId { get; set; }
   }
 }
