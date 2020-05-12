@@ -15,12 +15,15 @@ using Microsoft.Graph;
 using Microsoft.Identity.Client;
 using System.Net.Http.Headers;
 
+
 namespace msgraphapp.Controllers
 {
+
     [Route("api/[controller]")]
     [ApiController]
     public class NotificationsController : ControllerBase
     {
+        public const int subscriptionLifeTime = 1*60;      // 1 hour  max = 4230 minutes (under 3 days)
         private readonly MyConfig config;
         private static Dictionary<string, Subscription> Subscriptions = new Dictionary<string, Subscription>();
         private static Timer subscriptionTimer = null;
@@ -33,66 +36,8 @@ namespace msgraphapp.Controllers
         [HttpGet]
         public async Task<ActionResult<string>> Get()
         {
-    
-            var graphServiceClient = GetGraphClient();
-            var msg = $"";
-            Microsoft.Graph.Subscription sub = null;
-            Microsoft.Graph.Subscription newSubscription = null;
-
-            // // user changes 
-            // sub = new Microsoft.Graph.Subscription();
-            // sub.ChangeType = "updated";
-            // sub.NotificationUrl = config.Ngrok + "/api/notifications";
-            // sub.Resource = "/users";
-            // sub.ExpirationDateTime = DateTime.UtcNow.AddMinutes(5);
-            // sub.ClientState = "user_changes";
-
-            // newSubscription = await graphServiceClient
-            //   .Subscriptions
-            //   .Request()
-            //   .AddAsync(sub);
-            // msg += $"Subscribed. Id: {newSubscription.Id}, {newSubscription.ChangeType}, {newSubscription.Resource}, Expiration: {newSubscription.ExpirationDateTime}\r\n";
-            // Subscriptions[newSubscription.Id] = newSubscription;
-
-            // // group changes 
-            // sub = new Microsoft.Graph.Subscription();
-            // sub.ChangeType = "updated";
-            // sub.NotificationUrl = config.Ngrok + "/api/notifications";
-            // sub.Resource = "/groups";
-            // sub.ExpirationDateTime = DateTime.UtcNow.AddMinutes(5);
-            // sub.ClientState = "group_changes";
-
-            // newSubscription = await graphServiceClient
-            //   .Subscriptions
-            //   .Request()
-            //   .AddAsync(sub);
-            // msg += $"Subscribed. Id: {newSubscription.Id}, {newSubscription.ChangeType}, {newSubscription.Resource}, Expiration: {newSubscription.ExpirationDateTime}\r\n";
-            // Subscriptions[newSubscription.Id] = newSubscription;
-
-            // // New Call Details 
-            sub = new Microsoft.Graph.Subscription();
-            sub.ChangeType = "created";
-            sub.NotificationUrl = config.Ngrok + "/api/notifications";
-            sub.Resource = "/communications/callRecords";
-            sub.ExpirationDateTime = DateTime.UtcNow.AddMinutes(1*60);      // 1 hour  max = 4230 minutes (under 3 days)
-            sub.ClientState = "new_callrecord";
-
-            newSubscription = await graphServiceClient
-              .Subscriptions
-              .Request()
-              .AddAsync(sub);
-            msg += $"Subscribed. Id: {newSubscription.Id}, {newSubscription.ChangeType}, {newSubscription.Resource}, Expiration: {newSubscription.ExpirationDateTime}\r\n";
-
-            Subscriptions[newSubscription.Id] = newSubscription;
-            //--------------------------
-
-
-            if (subscriptionTimer == null)
-            {
-                subscriptionTimer = new Timer(CheckSubscriptions, null, 5000, 15000);
-            }
-            // return all subscriptions
-            return msg;
+            CreateSubscription();
+            return $"Subscription created";
         }
 
         public async Task<ActionResult<string>> Post([FromQuery]string validationToken = null)
@@ -115,7 +60,7 @@ namespace msgraphapp.Controllers
                 var notifications = JsonConvert.DeserializeObject<Notifications>(content);
                 var filename = ".\\recievedchanges.csv";
                 var addHeaders = ! System.IO.File.Exists(filename);
-                // write/append changes to the simplets of storarage; a csv file 
+                // write/append changes to the simplest of storarage; a csv file 
                 using (var writer = new StreamWriter(filename,true))
                 {   
                     // header only if new file
@@ -190,6 +135,64 @@ namespace msgraphapp.Controllers
             }
         }
 
+        public async void CreateSubscription()
+        {
+           var graphServiceClient = GetGraphClient();
+            var msg = $"";
+            Microsoft.Graph.Subscription sub = null;
+            Microsoft.Graph.Subscription newSubscription = null;
+
+            // // user changes 
+            // sub = new Microsoft.Graph.Subscription();
+            // sub.ChangeType = "updated";
+            // sub.NotificationUrl = config.Ngrok + "/api/notifications";
+            // sub.Resource = "/users";
+            // sub.ExpirationDateTime = DateTime.UtcNow.AddMinutes(5);
+            // sub.ClientState = "user_changes";
+
+            // newSubscription = await graphServiceClient
+            //   .Subscriptions
+            //   .Request()
+            //   .AddAsync(sub);
+            // msg += $"Subscribed. Id: {newSubscription.Id}, {newSubscription.ChangeType}, {newSubscription.Resource}, Expiration: {newSubscription.ExpirationDateTime}\r\n";
+            // Subscriptions[newSubscription.Id] = newSubscription;
+
+            // // group changes 
+            // sub = new Microsoft.Graph.Subscription();
+            // sub.ChangeType = "updated";
+            // sub.NotificationUrl = config.Ngrok + "/api/notifications";
+            // sub.Resource = "/groups";
+            // sub.ExpirationDateTime = DateTime.UtcNow.AddMinutes(5);
+            // sub.ClientState = "group_changes";
+
+            // newSubscription = await graphServiceClient
+            //   .Subscriptions
+            //   .Request()
+            //   .AddAsync(sub);
+            // msg += $"Subscribed. Id: {newSubscription.Id}, {newSubscription.ChangeType}, {newSubscription.Resource}, Expiration: {newSubscription.ExpirationDateTime}\r\n";
+            // Subscriptions[newSubscription.Id] = newSubscription;
+
+            // // New Call Details 
+            sub = new Microsoft.Graph.Subscription();
+            sub.ChangeType = "created";
+            sub.NotificationUrl = config.Ngrok + "/api/notifications";
+            sub.Resource = "/communications/callRecords";
+            sub.ExpirationDateTime = DateTime.UtcNow.AddMinutes(subscriptionLifeTime);      // 1 hour  max = 4230 minutes (under 3 days)
+            sub.ClientState = "new_callrecord";
+
+            newSubscription = await graphServiceClient
+              .Subscriptions
+              .Request()
+              .AddAsync(sub);
+            msg += $"Subscribed. Id: {newSubscription.Id}, {newSubscription.ChangeType}, {newSubscription.Resource}, Expiration: {newSubscription.ExpirationDateTime}\r\n";
+
+            Subscriptions[newSubscription.Id] = newSubscription;
+            //--------------------------
+            if (subscriptionTimer == null)
+            {
+                subscriptionTimer = new Timer(CheckSubscriptions, null, 5000, 15000);
+            }
+        }
         private async void RenewSubscription(Subscription subscription)
         {
             Console.WriteLine($"Current subscription: {subscription.Id} for {subscription.Resource},  Expiration: {subscription.ExpirationDateTime}");
@@ -198,7 +201,7 @@ namespace msgraphapp.Controllers
 
             var newSubscription = new Subscription
             {
-                ExpirationDateTime = DateTime.UtcNow.AddMinutes(5)
+                ExpirationDateTime = DateTime.UtcNow.AddMinutes(subscriptionLifeTime)
             };
             try {
                 await graphServiceClient
