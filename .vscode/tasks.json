@@ -2,6 +2,18 @@
     "version": "2.0.0",
     "tasks": [
         {
+            "label": "ngrok",
+            "type": "shell",
+            "command": "ngrok",
+            "args": [
+                "http",
+                "5000",
+                "-subdomain=jvgraph"
+            ],
+            "isBackground": true,
+            "problemMatcher": []
+        },
+        {
             "label": "build",
             "command": "dotnet",
             "type": "process",
@@ -29,6 +41,7 @@
             "label": "watch",
             "command": "dotnet",
             "type": "process",
+
             "args": [
                 "watch",
                 "run",
@@ -36,7 +49,10 @@
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary"
             ],
-            "problemMatcher": "$msCompile"
+            "problemMatcher": "$msCompile",
+            "options": {
+                "cwd": "${workspaceFolder}/demos/03-track-changes"
+            }
         }
     ]
 }

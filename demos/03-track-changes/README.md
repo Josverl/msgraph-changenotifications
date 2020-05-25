@@ -1,4 +1,4 @@
-# Completed project
+# Completed project  recieve notification on Call Detail Records 
 
 The version of the project in this directory is the completed project.
 
@@ -9,3 +9,16 @@ The version of the project in this directory is the completed project.
 >     1. `<NGROK URL>` should be set to the ngrok https forwarding address. See [Install ngrok](../../tutorial/03_ngrok.md) for information on installing and running ngrok.
 >     1. `<TENANT ID>` should be your Office 365 tenant id you got from the App Registration Portal.
 >     1. `<APP ID>` and `<APP SECRET>` should be the application id and secret you got from the App Registration Portal.
+
+
+Running Locally : 
+- Run NGROK , `ngrok http 5000` or 'ngrok http 5000 -subdomain=mygraph`
+  take a note of your ngrok url or specify a static one ( see above section on ngrok) 
+- start the app 
+    - in the debugger (f5)
+    - normally (dotnet run) 
+- trigger initial subscription for change notifications
+  goto http://localhost:5000/api/notifications
+
+
+

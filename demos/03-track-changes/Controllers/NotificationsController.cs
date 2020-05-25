@@ -198,7 +198,7 @@ namespace msgraphapp.Controllers
 
             var newSubscription = new Subscription
             {
-                ExpirationDateTime = DateTime.UtcNow.AddMinutes(5)
+                ExpirationDateTime = DateTime.UtcNow.AddMinutes(1*60)
             };
             try {
                 await graphServiceClient
